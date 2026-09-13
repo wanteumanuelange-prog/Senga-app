@@ -19,11 +19,27 @@ export default function HomePage() {
         return;
       }
 
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("clients")
         .select("*")
         .eq("auth_user_id", session.user.id)
-        .single();
+        .maybeSingle();
+
+      // Si aucune fiche client n'existe encore (ex. l'inscription avait
+      // échoué à mi-chemin), on la crée maintenant automatiquement.
+      if (!error && !data) {
+        const { data: created, error: createError } = await supabase
+          .from("clients")
+          .insert({
+            auth_user_id: session.user.id,
+            email: session.user.email,
+            full_name: session.user.email.split("@")[0],
+            language: "fr",
+          })
+          .select()
+          .single();
+        if (!createError) data = created;
+      }
 
       if (!error) setClient(data);
       setLoading(false);
@@ -82,4 +98,4 @@ export default function HomePage() {
       </button>
     </div>
   );
-}
+        }
